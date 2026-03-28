@@ -1,14 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google"; // Switch to Noto Sans Thai later if desired
+import { Sarabun } from "next/font/google";
 import "./globals.css";
 import { ClientProvider } from "@/components/providers/client-provider";
 import { BottomNav } from "@/components/layout/BottomNav";
 
-const inter = Inter({ subsets: ["latin"] });
+const sarabun = Sarabun({ 
+  weight: ['300', '400', '500', '600', '700', '800'],
+  subsets: ["latin", "thai"],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "ParaSmart",
   description: "จัดการสวนยางพาราของคุณด้วยเทคโนโลยีที่ทันสมัย",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -25,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 antialiased selection:bg-emerald-500/30 flex flex-col`}>
+      <body className={`${sarabun.className} min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 antialiased selection:bg-emerald-500/30 flex flex-col uppercase-none`}>
         <ClientProvider>
           {/* Main Content Area */}
           <main className="flex-1 pb-20 overflow-x-hidden">

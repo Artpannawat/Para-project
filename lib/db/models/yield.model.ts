@@ -12,8 +12,8 @@ export interface IYield extends Document {
 
 const YieldSchema = new Schema<IYield>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    date: { type: Date, required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    date: { type: Date, required: true, index: true },
     weight: { type: Number, required: true },
     drc_percent: { type: Number },
     price_per_kg: { type: Number, required: true },
@@ -22,5 +22,8 @@ const YieldSchema = new Schema<IYield>(
   },
   { timestamps: true }
 );
+
+// Compound index for fast userId + date queries
+YieldSchema.index({ userId: 1, date: -1 });
 
 export const Yield: Model<IYield> = mongoose.models.Yield || mongoose.model<IYield>('Yield', YieldSchema);
