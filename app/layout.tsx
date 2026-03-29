@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   description: "จัดการสวนยางพาราของคุณด้วยเทคโนโลยีที่ทันสมัย",
   icons: {
     icon: "/logo.png",
+    apple: "/logo.png",
   },
 };
 
