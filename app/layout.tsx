@@ -40,7 +40,7 @@ export default function RootLayout({
           </main>
           
           {/* Bottom Navigation: Perfectly Synced with Content Column */}
-          <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 pointer-events-none pb-6">
+          <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 pointer-events-none pb-2">
              <div className="w-full max-w-3xl px-4 md:px-8 pointer-events-auto transition-all duration-300">
                 <BottomNav />
              </div>
