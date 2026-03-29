@@ -25,14 +25,16 @@ export default async function DashboardPage() {
       {/* Premium Header v2.2 (Integrated Logo) */}
       <div className="flex justify-between items-center bg-white dark:bg-zinc-900/60 p-5 rounded-[2.5rem] shadow-sm border border-neutral-100 dark:border-white/5 backdrop-blur-3xl z-30">
         <div className="flex items-center gap-4">
-          <div className="relative w-14 h-14 rounded-3xl overflow-hidden bg-white shadow-2xl shadow-emerald-500/10 border-4 border-emerald-50/50">
-             <Image 
-               src="/logo.png" 
-               alt="ParaSmart Logo" 
-               fill 
-               priority
-               className="object-cover transform hover:scale-110 transition-transform"
-             />
+          <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center border-none bg-transparent">
+             <div className="relative w-full h-full scale-[1.5] transform transition-transform hover:scale-[1.6]">
+               <Image 
+                 src="/logo.png" 
+                 alt="ParaSmart Logo" 
+                 fill 
+                 priority
+                 className="object-cover"
+               />
+             </div>
           </div>
           <div>
             <h1 className="text-xl font-black text-neutral-800 dark:text-neutral-50 tracking-tight leading-tight">

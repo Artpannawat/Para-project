@@ -22,11 +22,11 @@ const TAG_CONFIG: Record<Tag, { border: string; bg: string; label: string; label
     glow: 'shadow-amber-500/10 dark:shadow-yellow-500/20',
   },
   hot_warn: {
-    border: 'border-rose-200 dark:border-rose-500/40',
-    bg: 'bg-rose-50 dark:bg-gradient-to-b dark:from-rose-950/30 dark:to-red-950/20',
+    border: 'border-rose-200 dark:border-rose-500/60',
+    bg: 'bg-rose-50 dark:bg-rose-950/50',
     label: '🔴 ร้อน น้ำยางแข็งเร็ว',
-    labelColor: 'text-rose-700 dark:text-rose-400',
-    glow: 'shadow-rose-500/10',
+    labelColor: 'text-rose-700 dark:text-rose-200',
+    glow: 'shadow-rose-500/20',
   },
   wind_warn: {
     border: 'border-blue-200 dark:border-blue-500/40',
@@ -89,7 +89,7 @@ export function HourlyForecastRow({ hourly }: { hourly: HourlySlot[] }) {
                 alt="weather"
                 width={56}
                 height={56}
-                className="drop-shadow-lg -my-1"
+                className="drop-shadow-lg"
               />
 
               {/* Temperature */}
