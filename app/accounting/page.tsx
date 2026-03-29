@@ -38,7 +38,7 @@ export default async function AccountingPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-6 flex flex-col pt-10 pb-24">
+    <div className="min-h-screen bg-transparent pt-10 pb-12 flex flex-col">
       <div className="mb-6 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-black text-neutral-800 dark:text-neutral-100 flex items-center gap-2">

@@ -54,8 +54,8 @@ const TAG_CONFIG: Record<Tag, { border: string; bg: string; label: string; label
 export function HourlyForecastRow({ hourly }: { hourly: HourlySlot[] }) {
   return (
     <div className="w-full">
-      <h3 className="font-black text-base text-slate-800 dark:text-neutral-200 mb-4 px-1 uppercase tracking-wider flex items-center gap-2">
-        <span className="w-1.5 h-5 bg-emerald-500 rounded-full" />
+      <h3 className="font-black text-lg text-slate-900 dark:text-neutral-100 mb-4 px-1 uppercase tracking-wider flex items-center gap-2">
+        <span className="w-1.5 h-6 bg-emerald-500 rounded-full" />
         พยากรณ์ 24 ชั่วโมง
       </h3>
       <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory -mx-1 px-1 scrollbar-hide">
@@ -77,7 +77,7 @@ export function HourlyForecastRow({ hourly }: { hourly: HourlySlot[] }) {
                 <span className="text-[11px] font-bold text-slate-500 dark:text-neutral-400 uppercase tracking-wider">
                   {slot.shiftLabel}
                 </span>
-                <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                <span className="text-lg font-black text-slate-950 dark:text-white tracking-tight">
                   {slot.time}
                 </span>
               </div>

@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   await dbConnect();
   
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-50 dark:bg-neutral-950 p-6 pt-8 pb-24 gap-6 anim-fade-in relative overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-transparent pt-8 pb-12 gap-6 anim-fade-in relative overflow-x-hidden">
       {/* Premium Header v2.2 (Integrated Logo) */}
       <div className="flex justify-between items-center bg-white dark:bg-zinc-900/60 p-5 rounded-[2.5rem] shadow-sm border border-neutral-100 dark:border-white/5 backdrop-blur-3xl z-30">
         <div className="flex items-center gap-4">

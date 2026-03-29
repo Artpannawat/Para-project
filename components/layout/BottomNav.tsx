@@ -18,7 +18,7 @@ export function BottomNav() {
   if (pathname === '/login') return null;
 
   return (
-    <div className="fixed bottom-0 w-full h-16 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] flex justify-around items-center z-50 rounded-t-2xl border-t border-gray-100 dark:bg-zinc-900 dark:border-zinc-800">
+    <div className="h-16 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl shadow-lg flex justify-around items-center rounded-2xl border border-gray-100 dark:border-white/5 relative overflow-hidden">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = pathname === item.href;
