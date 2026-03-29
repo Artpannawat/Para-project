@@ -4,7 +4,7 @@ type Tag = 'golden' | 'hot_warn' | 'wind_warn' | 'rain_warn' | 'normal';
 
 interface HourlySlot {
   time: string;
-  dateLabel: string;
+  shiftLabel: string;
   temp: number;
   humidity: number;
   windKmh: number;
@@ -13,46 +13,52 @@ interface HourlySlot {
   tag: Tag;
 }
 
-const TAG_CONFIG: Record<Tag, { border: string; bg: string; label: string; labelColor: string }> = {
+const TAG_CONFIG: Record<Tag, { border: string; bg: string; label: string; labelColor: string; glow: string }> = {
   golden: {
-    border: 'border-yellow-400 shadow-yellow-300/50',
-    bg: 'bg-gradient-to-b from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20',
-    label: '✨ ช่วงเวลาทอง น้ำยางไหลดี',
-    labelColor: 'text-yellow-700 dark:text-yellow-300',
+    border: 'border-yellow-500/60',
+    bg: 'bg-gradient-to-b from-yellow-950/40 to-amber-950/30',
+    label: '✨ ช่วงเวลาทอง',
+    labelColor: 'text-yellow-400',
+    glow: 'shadow-yellow-500/20',
   },
   hot_warn: {
-    border: 'border-rose-400 shadow-rose-300/40',
-    bg: 'bg-gradient-to-b from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20',
-    label: '🛑 อากาศร้อนสะสม น้ำยางแข็งเร็ว',
-    labelColor: 'text-rose-700 dark:text-rose-300',
+    border: 'border-rose-500/40',
+    bg: 'bg-gradient-to-b from-rose-950/30 to-red-950/20',
+    label: '🔴 ร้อน น้ำยางแข็งเร็ว',
+    labelColor: 'text-rose-400',
+    glow: 'shadow-rose-500/10',
   },
   wind_warn: {
-    border: 'border-blue-400 shadow-blue-300/40',
-    bg: 'bg-gradient-to-b from-blue-50 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/20',
-    label: '🌬️ ลมแรง ระวังยางแห้งติดรอย',
-    labelColor: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-500/40',
+    bg: 'bg-gradient-to-b from-blue-950/30 to-sky-950/20',
+    label: '🌬️ ลมแรง ระวังแห้ง',
+    labelColor: 'text-blue-400',
+    glow: 'shadow-blue-500/10',
   },
   rain_warn: {
-    border: 'border-indigo-400 shadow-indigo-300/40',
-    bg: 'bg-gradient-to-b from-indigo-50 to-slate-50 dark:from-indigo-900/20 dark:to-slate-900/20',
-    label: '🌧️ มีฝนตก ระวังน้ำยางเสีย',
-    labelColor: 'text-indigo-700 dark:text-indigo-300',
+    border: 'border-indigo-500/40',
+    bg: 'bg-gradient-to-b from-indigo-950/30 to-slate-950/20',
+    label: '🌧️ ฝนตก ระวังเสีย',
+    labelColor: 'text-indigo-400',
+    glow: 'shadow-indigo-500/10',
   },
   normal: {
-    border: 'border-neutral-200 dark:border-neutral-800',
-    bg: 'bg-white dark:bg-neutral-900/40',
+    border: 'border-white/10',
+    bg: 'bg-white/5',
     label: '✅ กรีดได้ดี',
-    labelColor: 'text-emerald-600 dark:text-emerald-400',
+    labelColor: 'text-emerald-400',
+    glow: '',
   },
 };
 
 export function HourlyForecastRow({ hourly }: { hourly: HourlySlot[] }) {
   return (
     <div className="w-full">
-      <h3 className="font-bold text-lg text-neutral-700 dark:text-neutral-300 mb-3 px-1">
+      <h3 className="font-black text-base text-neutral-200 mb-4 px-1 uppercase tracking-wider flex items-center gap-2">
+        <span className="w-1.5 h-5 bg-emerald-500 rounded-full" />
         พยากรณ์ 24 ชั่วโมง
       </h3>
-      <div className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory -mx-1 px-1">
+      <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory -mx-1 px-1 scrollbar-hide">
         {hourly.map((slot, idx) => {
           const cfg = TAG_CONFIG[slot.tag];
           const isHighlighted = slot.tag !== 'normal';
@@ -61,63 +67,58 @@ export function HourlyForecastRow({ hourly }: { hourly: HourlySlot[] }) {
             <div
               key={idx}
               className={`
-                snap-start flex-shrink-0 w-[120px] rounded-2xl border-2 p-3 shadow-sm
-                transition-all duration-200 flex flex-col items-center gap-1.5
-                ${cfg.border} ${cfg.bg}
-                ${isHighlighted ? 'shadow-md' : ''}
+                snap-start flex-shrink-0 w-[130px] rounded-[1.5rem] border-2 p-4
+                transition-all duration-200 flex flex-col items-center gap-2
+                ${cfg.border} ${cfg.bg} ${isHighlighted ? `shadow-lg ${cfg.glow}` : ''}
               `}
             >
-              {/* Date & Time */}
+              {/* Shift Label + Time */}
               <div className="flex flex-col items-center leading-none mb-1">
-                <span className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase">
-                  {slot.dateLabel}
+                <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                  {slot.shiftLabel}
                 </span>
-                <span className="text-sm font-black text-neutral-700 dark:text-neutral-200 tracking-tight">
+                <span className="text-lg font-black text-white tracking-tight">
                   {slot.time}
                 </span>
               </div>
 
-              {/* Weather Icon from OWM CDN */}
+              {/* Weather Icon from OWM CDN (@2x for crisp rendering) */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`https://openweathermap.org/img/wn/${slot.icon}.png`}
+                src={`https://openweathermap.org/img/wn/${slot.icon}@2x.png`}
                 alt="weather"
-                width={40}
-                height={40}
-                className="drop-shadow-sm"
+                width={56}
+                height={56}
+                className="drop-shadow-lg -my-1"
               />
 
-              {/* Temp */}
-              <span className="text-base font-extrabold text-neutral-800 dark:text-neutral-100">
+              {/* Temperature */}
+              <span className="text-xl font-black text-white">
                 {slot.temp}°C
               </span>
 
-              <div className="w-full border-t border-neutral-200 dark:border-neutral-600 mt-0.5 pt-1.5 space-y-0.5">
-                {/* Humidity */}
-                <div className="flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400">
+              {/* Details */}
+              <div className="w-full border-t border-white/10 mt-1 pt-2 space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-neutral-400">
                   <span>💧</span>
-                  <span className="font-semibold">{slot.humidity}%</span>
+                  <span className="font-bold text-neutral-300">{slot.humidity}%</span>
                 </div>
-                {/* Wind */}
-                <div className="flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400">
+                <div className="flex items-center justify-between text-[11px] text-neutral-400">
                   <span>💨</span>
-                  <span className="font-semibold">{slot.windKmh} km/h</span>
+                  <span className="font-bold text-neutral-300">{slot.windKmh} km/h</span>
                 </div>
-                {/* Rain */}
                 {slot.pop > 5 && (
-                  <div className="flex items-center justify-between text-[11px] text-blue-500">
+                  <div className="flex items-center justify-between text-[11px] text-blue-400">
                     <span>🌧</span>
-                    <span className="font-semibold">{slot.pop}%</span>
+                    <span className="font-bold">{slot.pop}%</span>
                   </div>
                 )}
               </div>
 
               {/* Intelligence Label */}
-              {cfg.label && (
-                <p className={`text-[10px] font-bold text-center leading-tight mt-1 ${cfg.labelColor}`}>
-                  {cfg.label}
-                </p>
-              )}
+              <p className={`text-[10px] font-black text-center leading-tight mt-1 ${cfg.labelColor}`}>
+                {cfg.label}
+              </p>
             </div>
           );
         })}

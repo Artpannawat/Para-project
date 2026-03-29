@@ -2,11 +2,14 @@
 
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, MapPin, Bell, Navigation, CheckCircle, Loader2 } from 'lucide-react';
+import { LogOut, User, MapPin, Bell, Navigation, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string;
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -21,13 +24,15 @@ export default function SettingsPage() {
 
   const [locationMode, setLocationMode] = useState<'default' | 'gps'>('default');
   const [notifStatus, setNotifStatus] = useState<'idle' | 'loading' | 'subscribed' | 'denied' | 'unsupported'>('idle');
+  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-  // Load saved preferences on mount
+  // Fetch saved plantation coordinates for live display
+  const { data: plantation } = useSWR('/api/user/plantation', fetcher);
+
   useEffect(() => {
     const savedMode = localStorage.getItem('para_location_mode');
     if (savedMode === 'gps') setLocationMode('gps');
 
-    // Check current notification permission
     if (typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
       setNotifStatus('unsupported');
       return;
@@ -36,7 +41,6 @@ export default function SettingsPage() {
     if (Notification.permission === 'denied') {
       setNotifStatus('denied');
     } else if (Notification.permission === 'granted') {
-      // Check if we have an active subscription
       navigator.serviceWorker.ready.then((reg) => {
         reg.pushManager.getSubscription().then((sub) => {
           if (sub) setNotifStatus('subscribed');
@@ -63,7 +67,6 @@ export default function SettingsPage() {
 
   const handleNotificationToggle = useCallback(async () => {
     if (notifStatus === 'subscribed') {
-      // Unsubscribe
       try {
         setNotifStatus('loading');
         const reg = await navigator.serviceWorker.ready;
@@ -92,7 +95,6 @@ export default function SettingsPage() {
     try {
       setNotifStatus('loading');
 
-      // Request notification permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setNotifStatus('denied');
@@ -107,10 +109,11 @@ export default function SettingsPage() {
         applicationServerKey: appServerKey,
       } as PushSubscriptionOptionsInit);
 
-      // Get current GPS coordinates if available
       let lat = 17.89, lon = 101.88;
-      const mode = localStorage.getItem('para_location_mode');
-      if (mode === 'gps' && navigator.geolocation) {
+      if (plantation?.plantation_lat) {
+        lat = plantation.plantation_lat;
+        lon = plantation.plantation_lng;
+      } else if (locationMode === 'gps' && navigator.geolocation) {
         await new Promise<void>((resolve) => {
           navigator.geolocation.getCurrentPosition(
             (pos) => { lat = pos.coords.latitude; lon = pos.coords.longitude; resolve(); },
@@ -120,7 +123,6 @@ export default function SettingsPage() {
         });
       }
 
-      // Save subscription to MongoDB
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,11 +136,23 @@ export default function SettingsPage() {
       console.error('[PUSH_SUBSCRIBE]', err);
       setNotifStatus('idle');
     }
-  }, [notifStatus]);
+  }, [notifStatus, plantation, locationMode]);
 
-  // Send a test notification to self
+  // Send test notification with ?test=true bypass
   const sendTest = async () => {
-    await fetch('/api/cron/weather-alert');
+    setTestStatus('loading');
+    try {
+      const res = await fetch('/api/cron/weather-alert?test=true');
+      const data = await res.json();
+      if (res.ok && data.sent > 0) {
+        setTestStatus('success');
+      } else {
+        setTestStatus('error');
+      }
+    } catch {
+      setTestStatus('error');
+    }
+    setTimeout(() => setTestStatus('idle'), 4000);
   };
 
   if (status === 'unauthenticated') {
@@ -147,6 +161,11 @@ export default function SettingsPage() {
   }
 
   const isNotifActive = notifStatus === 'subscribed';
+
+  // Format plantation coordinates for display
+  const plantationDisplay = plantation?.plantation_lat && plantation.plantation_lat !== 17.89
+    ? `${plantation.plantation_lat.toFixed(4)}, ${plantation.plantation_lng.toFixed(4)} (ปักหมุดแล้ว)`
+    : 'บ้านคกไผ่ อ.ปากชม (ค่าเริ่มต้น)';
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 p-6 flex flex-col pt-10 pb-24">
@@ -173,24 +192,24 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-4 mb-8">
-        {/* Location Setting */}
+        {/* Location Setting — Live Coordinates */}
         <div className="bg-white dark:bg-neutral-900 rounded-2xl p-4 flex items-center justify-between shadow-sm border border-neutral-100 dark:border-neutral-800">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl transition-colors ${locationMode === 'gps' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-500'}`}>
-              {locationMode === 'gps' ? <Navigation size={24} /> : <MapPin size={24} />}
+            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500">
+              <MapPin size={24} />
             </div>
             <div>
               <p className="font-bold text-neutral-800 dark:text-neutral-200">ตำแหน่งสวนยาง</p>
               <p className="text-xs text-neutral-500 mt-0.5">
-                {locationMode === 'default' ? 'บ้านคกไผ่ อ.ปากชม (ค่าเริ่มต้น)' : 'พิกัด GPS ปัจจุบัน'}
+                {plantationDisplay}
               </p>
             </div>
           </div>
           <button
-            onClick={toggleLocationMode}
-            className={`text-sm font-bold px-3 py-1.5 rounded-full transition-colors ${locationMode === 'gps' ? 'text-indigo-500 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40' : 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40'}`}
+            onClick={() => router.push('/settings/plantation')}
+            className="text-sm font-bold px-3 py-1.5 rounded-full text-emerald-500 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 transition-colors"
           >
-            เปลี่ยน
+            แก้ไข
           </button>
         </div>
 
@@ -216,21 +235,31 @@ export default function SettingsPage() {
             ) : notifStatus === 'unsupported' || notifStatus === 'denied' ? null : (
               <button
                 onClick={handleNotificationToggle}
-                className={`relative w-12 h-7 rounded-full transition-colors duration-300 focus:outline-none ${isNotifActive ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}
+                className={`relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none ${isNotifActive ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}
               >
-                <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ${isNotifActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300 ${isNotifActive ? 'translate-x-7' : 'translate-x-1'}`} />
               </button>
             )}
           </div>
 
-          {/* Test Button (only when subscribed) */}
+          {/* Test Button with feedback */}
           {isNotifActive && (
             <button
               onClick={sendTest}
-              className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl py-2.5 font-bold hover:bg-emerald-100 transition-colors"
+              disabled={testStatus === 'loading'}
+              className={`mt-3 w-full flex items-center justify-center gap-2 text-sm border rounded-xl py-2.5 font-bold transition-all ${
+                testStatus === 'success'
+                  ? 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400'
+                  : testStatus === 'error'
+                  ? 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400'
+                  : 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400 hover:bg-emerald-100'
+              }`}
             >
-              <CheckCircle size={16} />
-              ส่งแจ้งเตือนทดสอบ
+              {testStatus === 'loading' && <Loader2 size={16} className="animate-spin" />}
+              {testStatus === 'success' && <CheckCircle size={16} />}
+              {testStatus === 'error' && <AlertCircle size={16} />}
+              {testStatus === 'idle' && <CheckCircle size={16} />}
+              {testStatus === 'loading' ? 'กำลังส่ง...' : testStatus === 'success' ? 'ส่งสำเร็จ!' : testStatus === 'error' ? 'ส่งล้มเหลว ตรวจสอบ VAPID Keys' : 'ส่งแจ้งเตือนทดสอบ'}
             </button>
           )}
         </div>
@@ -246,7 +275,7 @@ export default function SettingsPage() {
 
       <div className="mt-8 text-center px-4">
         <p className="text-xs text-neutral-400 my-2">พัฒนาเพื่อเกษตรกรชาวสวนยางไทย 🇹🇭</p>
-        <p className="text-xs text-neutral-300 dark:text-neutral-600 font-mono">ParaSmart v1.1.0 (Push Enabled)</p>
+        <p className="text-xs text-neutral-300 dark:text-neutral-600 font-mono">ParaSmart v3.0</p>
       </div>
     </div>
   );

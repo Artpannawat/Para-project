@@ -6,9 +6,9 @@ const OWM_API_KEY = process.env.OPENWEATHER_API_KEY;
 const DEFAULT_LAT = 17.89;
 const DEFAULT_LON = 101.88;
 
-// Basic in-memory cache: { key: { data: any, expiry: number } }
-const cache: Record<string, { data: any, expiry: number }> = {};
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes in ms
+// In-memory cache with 10-minute TTL
+const cache: Record<string, { data: any; expiry: number }> = {};
+const CACHE_TTL = 10 * 60 * 1000;
 
 type IntelligenceTag = 'golden' | 'hot_warn' | 'wind_warn' | 'rain_warn' | 'normal';
 
@@ -24,6 +24,45 @@ function getIntelligenceTag(
   if (windKmh > 15) return 'wind_warn';
   if (pop > 0.4) return 'rain_warn';
   return 'normal';
+}
+
+/**
+ * Convert a UNIX timestamp to a Thailand (UTC+7) Date-like object.
+ * Returns { hour, day, month, year } all in ICT.
+ */
+function toThaiTime(unixSec: number) {
+  const utcMs = unixSec * 1000;
+  const ictMs = utcMs + 7 * 60 * 60 * 1000; // Add 7 hours
+  const d = new Date(ictMs);
+  return {
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+    day: d.getUTCDate(),
+    month: d.getUTCMonth(), // 0-indexed
+    year: d.getUTCFullYear(),
+  };
+}
+
+/**
+ * Get tapping-shift label for rubber tappers who work overnight.
+ * No confusing วันนี้/พรุ่งนี้ midnight cutoff.
+ */
+function getShiftLabel(hour: number): string {
+  if (hour >= 18) return 'คืนนี้';
+  if (hour < 6) return 'เช้ามืด';
+  return 'กลางวัน';
+}
+
+/**
+ * Get current Thailand time info for "now" reference.
+ */
+function getNowICT() {
+  const nowMs = Date.now() + 7 * 60 * 60 * 1000;
+  const d = new Date(nowMs);
+  return {
+    day: d.getUTCDate(),
+    month: d.getUTCMonth(),
+  };
 }
 
 export async function GET(req: Request) {
@@ -42,40 +81,28 @@ export async function GET(req: Request) {
       return NextResponse.json(cachedItem.data);
     }
 
-    const getThaiDateLabel = (dt: Date) => {
-      const today = new Date();
-      const isToday = dt.getDate() === today.getDate() && dt.getMonth() === today.getMonth();
-      const isTomorrow = dt.getDate() === today.getDate() + 1 && dt.getMonth() === today.getMonth();
-      
-      const day = dt.getDate();
-      const month = dt.toLocaleDateString('th-TH', { month: 'short' });
-      
-      if (isToday) return 'วันนี้';
-      if (isTomorrow) return 'พรุ่งนี้';
-      return `${day} ${month}`;
-    };
-
     if (!OWM_API_KEY) {
       // Mock data for dev without API key
+      const nowICT = getNowICT();
       const mockHourly = Array.from({ length: 8 }, (_, i) => {
-        const dt = new Date();
-        dt.setHours(dt.getHours() + i * 3);
-        const h = dt.getHours();
+        const futureUnix = Math.floor(Date.now() / 1000) + i * 3 * 3600;
+        const ict = toThaiTime(futureUnix);
         return {
-          time: `${String(h).padStart(2, '0')}:00`,
-          dateLabel: getThaiDateLabel(dt),
-          temp: 24 + Math.random() * 5,
+          time: `${String(ict.hour).padStart(2, '0')}:00`,
+          shiftLabel: getShiftLabel(ict.hour),
+          temp: +(24 + Math.random() * 5).toFixed(1),
           humidity: 75 + Math.floor(Math.random() * 20),
-          windKmh: 8 + Math.random() * 10,
-          pop: Math.random() * 0.3,
-          icon: '01d',
-          tag: h >= 1 && h <= 4 ? 'golden' : 'normal' as IntelligenceTag,
+          windKmh: +(8 + Math.random() * 10).toFixed(0),
+          pop: Math.round(Math.random() * 30),
+          icon: ict.hour >= 18 || ict.hour < 6 ? '01n' : '01d',
+          tag: (ict.hour >= 1 && ict.hour <= 4 ? 'golden' : 'normal') as IntelligenceTag,
         };
       });
       return NextResponse.json({
         temp: 27, humidity: 78, pop: 10,
         advice: '✅ กรีดได้ (อากาศดีไม่มีฝน)',
         hourly: mockHourly,
+        pm2_5: 0,
       });
     }
 
@@ -93,22 +120,21 @@ export async function GET(req: Request) {
     const pm2_5 = airData?.list?.[0]?.components?.pm2_5 || 0;
 
     const hourly = list.map((item: any) => {
-      const dt = new Date(item.dt * 1000);
-      const hour = dt.getHours();
+      const ict = toThaiTime(item.dt);
       const windKmh = (item.wind?.speed || 0) * 3.6;
       const pop = item.pop || 0;
       const temp = item.main.temp;
       const humidity = item.main.humidity;
 
       return {
-        time: `${String(hour).padStart(2, '0')}:00`,
-        dateLabel: getThaiDateLabel(dt),
+        time: `${String(ict.hour).padStart(2, '0')}:00`,
+        shiftLabel: getShiftLabel(ict.hour),
         temp: Math.round(temp * 10) / 10,
         humidity,
         windKmh: Math.round(windKmh),
         pop: Math.round(pop * 100),
         icon: item.weather?.[0]?.icon || '01d',
-        tag: getIntelligenceTag(hour, temp, humidity, windKmh, pop),
+        tag: getIntelligenceTag(ict.hour, temp, humidity, windKmh, pop),
       };
     });
 
@@ -123,8 +149,8 @@ export async function GET(req: Request) {
     else if (maxPop > 0.3 || currentHumidity > 80)
       advice = '⚠️ ระวังฝน (มีโอกาสฝนตกระหว่าง/หลังกรีด)';
 
-    const month = new Date().getMonth();
-    const isBurningSeason = month === 2 || month === 3; // March (2) and April (3)
+    const month = toThaiTime(Math.floor(Date.now() / 1000)).month;
+    const isBurningSeason = month === 2 || month === 3; // March, April
     const isLowHumidity = currentHumidity < 40;
 
     const result = {
@@ -141,7 +167,7 @@ export async function GET(req: Request) {
     // Save to Cache
     cache[cacheKey] = {
       data: result,
-      expiry: Date.now() + CACHE_TTL
+      expiry: Date.now() + CACHE_TTL,
     };
 
     return NextResponse.json(result);

@@ -16,14 +16,16 @@ webpush.setVapidDetails(
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
+  const { searchParams } = new URL(req.url);
+  const isTestMode = searchParams.get('test') === 'true';
 
-  // Allow localhost without auth (for local testing), require secret in production
+  // Allow localhost/test without auth, require secret in production
   const isLocal = req.headers.get('host')?.includes('localhost');
-  if (!isLocal && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isLocal && !isTestMode && authHeader !== `Bearer ${cronSecret}`) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
-  if (!OWM_API_KEY) {
+  if (!OWM_API_KEY && !isTestMode) {
     return NextResponse.json({ error: 'Missing OWM API Key' }, { status: 500 });
   }
 
@@ -42,28 +44,35 @@ export async function GET(req: Request) {
     const lon = sub.lon || 101.88;
 
     try {
-      const weatherRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&cnt=4&appid=${OWM_API_KEY}`
-      );
-      if (!weatherRes.ok) continue;
-
-      const weatherData = await weatherRes.json();
-      const list = weatherData.list;
-      const maxPop = Math.max(...list.map((item: any) => item.pop || 0));
-      const humidity = list[0].main.humidity;
-      const temp = Math.round(list[0].main.temp);
-
-      // Only send notification if there's a meaningful alert
-      if (maxPop < 0.3 && humidity < 80) continue;
-
-      let title = '⚠️ ParaSmart: แจ้งเตือนสภาพอากาศ';
+      let title = '';
       let body = '';
 
-      if (maxPop > 0.6 || humidity > 90) {
-        title = '🛑 ParaSmart: หยุดกรีดยาง!';
-        body = `โอกาสฝนตก ${Math.round(maxPop * 100)}% ความชื้น ${humidity}% อุณหภูมิ ${temp}°C\nแนะนำให้หยุดกรีดยางเพื่อรักษาเนื้อยาง`;
+      if (isTestMode) {
+        // Test mode: skip weather check, send a friendly test message
+        title = '🔔 ParaSmart: ทดสอบแจ้งเตือน';
+        body = 'ระบบแจ้งเตือนทำงานปกติ! คุณจะได้รับแจ้งเตือนสภาพอากาศเวลา 16:00 ทุกวัน';
       } else {
-        body = `โอกาสฝนตก ${Math.round(maxPop * 100)}% ความชื้น ${humidity}% อุณหภูมิ ${temp}°C\nระวังฝนระหว่างกรีดยางหรือหลังกรีด`;
+        const weatherRes = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&cnt=4&appid=${OWM_API_KEY}`
+        );
+        if (!weatherRes.ok) continue;
+
+        const weatherData = await weatherRes.json();
+        const list = weatherData.list;
+        const maxPop = Math.max(...list.map((item: any) => item.pop || 0));
+        const humidity = list[0].main.humidity;
+        const temp = Math.round(list[0].main.temp);
+
+        // Only send notification if there's a meaningful alert
+        if (maxPop < 0.3 && humidity < 80) continue;
+
+        if (maxPop > 0.6 || humidity > 90) {
+          title = '🛑 ParaSmart: หยุดกรีดยาง!';
+          body = `โอกาสฝนตก ${Math.round(maxPop * 100)}% ความชื้น ${humidity}% อุณหภูมิ ${temp}°C\nแนะนำให้หยุดกรีดยางเพื่อรักษาเนื้อยาง`;
+        } else {
+          title = '⚠️ ParaSmart: แจ้งเตือนสภาพอากาศ';
+          body = `โอกาสฝนตก ${Math.round(maxPop * 100)}% ความชื้น ${humidity}% อุณหภูมิ ${temp}°C\nระวังฝนระหว่างกรีดยางหรือหลังกรีด`;
+        }
       }
 
       const pushPayload = JSON.stringify({
