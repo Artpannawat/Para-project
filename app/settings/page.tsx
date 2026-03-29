@@ -235,9 +235,9 @@ export default function SettingsPage() {
             ) : notifStatus === 'unsupported' || notifStatus === 'denied' ? null : (
               <button
                 onClick={handleNotificationToggle}
-                className={`relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none shadow-inner ${isNotifActive ? 'bg-emerald-500' : 'bg-neutral-200 dark:bg-neutral-800'}`}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none shadow-inner ${isNotifActive ? 'bg-emerald-500' : 'bg-neutral-300 dark:bg-neutral-700'}`}
               >
-                <span className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 ${isNotifActive ? 'translate-x-[1.75rem]' : 'translate-x-1'}`} />
+                <span className={`absolute left-1 top-1 w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${isNotifActive ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             )}
           </div>
