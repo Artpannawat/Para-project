@@ -19,10 +19,19 @@ function getIntelligenceTag(
   windKmh: number,
   pop: number
 ): IntelligenceTag {
-  if (hour >= 1 && hour <= 4 && humidity > 80 && temp < 25) return 'golden';
-  if ((hour >= 20 && hour <= 22) || temp > 28) return 'hot_warn';
-  if (windKmh > 15) return 'wind_warn';
+  // 🌧️ Priority 1: RAIN — ปัจจัยวิกฤตที่สุด
   if (pop > 0.4) return 'rain_warn';
+
+  // 🌬️ Priority 2: WIND — ลมแรงหน้ายางแห้ง
+  if (windKmh > 15) return 'wind_warn';
+
+  // 🔴 Priority 3: HOT — อุณหภูมิวิกฤตพืช (>= 28°C)
+  // Hevea brasiliensis จะคายน้ำสูงและท่อน้ำยางอุดตันเร็วเมื่ออุณหภูมิเกิน 28°C
+  if (temp >= 28) return 'hot_warn';
+
+  // ✨ Priority 4: GOLDEN HOUR — ช่วงเวลาทอง (ต้องไม่ร้อนด้วย)
+  if (hour >= 1 && hour <= 4 && humidity > 80 && temp < 25) return 'golden';
+
   return 'normal';
 }
 
